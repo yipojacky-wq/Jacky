@@ -128,6 +128,126 @@ p {
   padding: 2rem 0 3rem;
 }
 
+.market-overview {
+  margin-bottom: 1.2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff 0%, #f3f8f5 100%);
+  box-shadow: var(--shadow);
+}
+
+.market-heading {
+  align-items: center;
+}
+
+.market-quote-time {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.market-card {
+  padding: 1.15rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.market-card.futures-card {
+  border-left-color: var(--gold);
+}
+
+.market-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.market-card h3 {
+  margin-top: 0.2rem;
+  font-size: 1.05rem;
+}
+
+.market-source {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.market-badge {
+  padding: 0.24rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.spot-badge {
+  color: var(--accent-dark);
+  background: #e3f2ed;
+}
+
+.futures-badge {
+  color: #785300;
+  background: #fff0c6;
+}
+
+.market-price {
+  display: block;
+  margin-top: 1rem;
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.market-change {
+  display: block;
+  min-height: 1.35rem;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.market-change.positive {
+  color: var(--sell);
+}
+
+.market-change.negative {
+  color: var(--buy);
+}
+
+.market-range {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.market-range b {
+  margin-left: 0.25rem;
+  color: var(--ink);
+}
+
+.futures-note {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.futures-note strong {
+  color: #785300;
+}
+
 .search-section {
   display: grid;
   grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
@@ -785,6 +905,18 @@ p {
 }
 
 @media (max-width: 700px) {
+  .market-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .market-heading {
+    align-items: start;
+  }
+
+  .market-quote-time {
+    text-align: right;
+  }
+
   .app-header {
     align-items: flex-start;
   }
