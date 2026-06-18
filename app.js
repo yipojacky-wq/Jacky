@@ -129,6 +129,7 @@ async function loadRealtimeQuotes() {
     const quotes = Array.isArray(payload.quotes) ? payload.quotes : [];
     state.realtimeQuotes = new Map(quotes.map((quote) => [quote.symbol, quote]));
     state.realtimeGeneratedAt = payload.generatedAt || "";
+    if (!quotes.length) throw new Error("即時報價資料檔尚未產生");
   } catch {
     state.realtimeQuotes = new Map();
     state.realtimeGeneratedAt = "";
@@ -352,7 +353,11 @@ async function refreshAll(options = {}) {
     const checkedAt = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
     elements.status.textContent = latestQuoteTime
       ? `今日盤價・最後更新 ${latestQuoteTime}`
-      : `即時報價尚未部署・目前顯示 ${formatDate(state.latestDate)} 收盤`;
+      : `即時報價未啟用・目前顯示 ${formatDate(state.latestDate)} 收盤`;
+    elements.status.classList.toggle("quote-warning", !latestQuoteTime);
+    if (!latestQuoteTime) {
+      showError("即時報價尚未啟用。請確認 GitHub Pages 的 Source 已改為 GitHub Actions，且 Actions 工作流程執行成功。");
+    }
   } catch (error) {
     showError(`無法取得證交所資料：${error.message}`);
     elements.status.textContent = "資料更新失敗";

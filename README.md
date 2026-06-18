@@ -32,6 +32,9 @@
 - `README.md`
 - `manifest.webmanifest`
 - `assets/jasic-icon.png`
+- `assets/jasic-180.png`
+- `assets/jasic-192.png`
+- `assets/jasic-512.png`
 
 由於即時報價需要 GitHub Actions 產生同網域資料檔，請到：
 

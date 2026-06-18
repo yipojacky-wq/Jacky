@@ -97,6 +97,11 @@ p {
   text-align: right;
 }
 
+.update-status.quote-warning {
+  color: var(--sell);
+  font-weight: 700;
+}
+
 .icon-button {
   display: grid;
   place-items: center;
