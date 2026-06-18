@@ -38,6 +38,49 @@
   </header>
 
   <main class="app-shell">
+    <section class="market-overview" aria-labelledby="marketOverviewTitle">
+      <div class="section-heading market-heading">
+        <div>
+          <span class="eyebrow">大盤速覽</span>
+          <h2 id="marketOverviewTitle">臺股現貨與期貨夜盤</h2>
+        </div>
+        <span id="marketQuoteTime" class="market-quote-time">行情載入中…</span>
+      </div>
+      <div class="market-grid">
+        <article class="market-card">
+          <div class="market-card-heading">
+            <div>
+              <span class="market-source">證交所現貨指數</span>
+              <h3>臺灣加權指數</h3>
+            </div>
+            <span class="market-badge spot-badge">現貨</span>
+          </div>
+          <strong id="taiexPrice" class="market-price">--</strong>
+          <span id="taiexChange" class="market-change">等待證交所報價</span>
+          <div class="market-range">
+            <span>高 <b id="taiexHigh">--</b></span>
+            <span>低 <b id="taiexLow">--</b></span>
+          </div>
+        </article>
+        <article class="market-card futures-card">
+          <div class="market-card-heading">
+            <div>
+              <span class="market-source">期交所盤後交易</span>
+              <h3>臺指期夜盤</h3>
+            </div>
+            <span class="market-badge futures-badge">期貨</span>
+          </div>
+          <strong id="taifexNightPrice" class="market-price">--</strong>
+          <span id="taifexNightChange" class="market-change">等待近月合約報價</span>
+          <div class="market-range">
+            <span>高 <b id="taifexNightHigh">--</b></span>
+            <span>低 <b id="taifexNightLow">--</b></span>
+          </div>
+          <p class="futures-note"><strong>近月合約</strong>・此為期貨點位，不是臺灣加權現貨指數。</p>
+        </article>
+      </div>
+    </section>
+
     <section class="search-section" aria-labelledby="searchTitle">
       <div>
         <span class="eyebrow">新增觀察</span>
@@ -138,7 +181,7 @@
     </section>
 
     <p class="disclaimer">
-      本工具使用臺灣證券交易所公開資料，僅供學習與建立觀察紀律，不構成投資建議。訊號是歷史價格的簡化判讀，不保證未來績效。
+      本工具使用臺灣證券交易所與臺灣期貨交易所公開資料，僅供學習與建立觀察紀律，不構成投資建議。臺指期夜盤為近月期貨合約，並非臺灣加權現貨指數；訊號是歷史價格的簡化判讀，不保證未來績效。
     </p>
   </main>
 
