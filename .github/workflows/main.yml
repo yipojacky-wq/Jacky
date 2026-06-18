@@ -1,1 +1,7 @@
-.github/workflows/deploy-pages.yml
+github/workflows/deploy-pages.yml
+scripts/update-realtime-quotes.mjs
+data/realtime-quotes.json
+assets/jasic-180.png
+assets/jasic-192.png
+assets/jasic-512.png
+assets/jasic-icon.png
