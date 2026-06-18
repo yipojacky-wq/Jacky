@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const DAILY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json";
 const MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp";
+const TAIFEX_QUOTE_URL = "https://mis.taifex.com.tw/futures/api/getQuoteList";
 const BATCH_SIZE = 80;
 
 function toNumber(value) {
@@ -32,6 +33,20 @@ async function fetchJson(url, headers = {}) {
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
   const text = await response.text();
   return JSON.parse(text.trim());
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      Referer: "https://mis.taifex.com.tw/futures/AfterHoursSession/EquityIndices/FuturesDomestic/",
+      "User-Agent": "Mozilla/5.0 JASIC-GitHub-Pages-Quote-Updater"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
+  return response.json();
 }
 
 async function getListedSymbols() {
@@ -73,6 +88,59 @@ function compactQuote(quote) {
   };
 }
 
+function compactTaiex(quote) {
+  if (!quote) return null;
+  return {
+    name: "臺灣加權指數",
+    price: toNumber(quote.z),
+    previousClose: toNumber(quote.y),
+    open: toNumber(quote.o),
+    high: toNumber(quote.h),
+    low: toNumber(quote.l),
+    date: quote.d || "",
+    time: quote.t || quote["%"] || "",
+    source: "TWSE"
+  };
+}
+
+async function getTaiexQuote() {
+  const [quote] = await getQuoteBatch(["t00"]);
+  return compactTaiex(quote);
+}
+
+async function getTaifexNightQuote() {
+  const payload = await postJson(TAIFEX_QUOTE_URL, {
+    MarketType: "1",
+    SymbolType: "F",
+    KindID: "1",
+    CID: "TXF",
+    ExpireMonth: ""
+  });
+  const quoteList = payload?.RtData?.QuoteList;
+  if (payload?.RtCode !== "0" || !Array.isArray(quoteList)) return null;
+
+  const quote = quoteList.find((item) =>
+    /^TXF[A-L]\d-M$/.test(item.SymbolID) &&
+    Number.isFinite(toNumber(item.CLastPrice))
+  );
+  if (!quote) return null;
+
+  return {
+    name: "臺指期夜盤",
+    contract: quote.DispEName || quote.SymbolID,
+    price: toNumber(quote.CLastPrice),
+    previousClose: toNumber(quote.CRefPrice),
+    open: toNumber(quote.COpenPrice),
+    high: toNumber(quote.CHighPrice),
+    low: toNumber(quote.CLowPrice),
+    volume: toNumber(quote.CTotalVolume),
+    date: quote.CDate || "",
+    time: quote.CTime || "",
+    source: "TAIFEX",
+    note: "近月合約・非現貨指數"
+  };
+}
+
 const symbols = await getListedSymbols();
 const quotes = [];
 
@@ -82,11 +150,20 @@ for (let index = 0; index < symbols.length; index += BATCH_SIZE) {
   quotes.push(...batchQuotes.map(compactQuote));
 }
 
+const [taiex, taifexNight] = await Promise.all([
+  getTaiexQuote().catch(() => null),
+  getTaifexNightQuote().catch(() => null)
+]);
+
 await mkdir("data", { recursive: true });
 await writeFile(
   "data/realtime-quotes.json",
-  `${JSON.stringify({ generatedAt: new Date().toISOString(), quotes })}\n`,
+  `${JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    markets: { taiex, taifexNight },
+    quotes
+  })}\n`,
   "utf8"
 );
 
-console.log(`Wrote ${quotes.length} realtime quotes.`);
+console.log(`Wrote ${quotes.length} realtime quotes, TAIEX=${Boolean(taiex)}, TXF night=${Boolean(taifexNight)}.`);
