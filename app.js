@@ -11,6 +11,10 @@ const state = {
   valuations: new Map(),
   realtimeQuotes: new Map(),
   realtimeGeneratedAt: "",
+  markets: {
+    taiex: null,
+    taifexNight: null
+  },
   watchSymbols: loadWatchSymbols(),
   stocks: [],
   filter: "all",
@@ -129,10 +133,15 @@ async function loadRealtimeQuotes() {
     const quotes = Array.isArray(payload.quotes) ? payload.quotes : [];
     state.realtimeQuotes = new Map(quotes.map((quote) => [quote.symbol, quote]));
     state.realtimeGeneratedAt = payload.generatedAt || "";
+    state.markets = {
+      taiex: payload.markets?.taiex || null,
+      taifexNight: payload.markets?.taifexNight || null
+    };
     if (!quotes.length) throw new Error("即時報價資料檔尚未產生");
   } catch {
     state.realtimeQuotes = new Map();
     state.realtimeGeneratedAt = "";
+    state.markets = { taiex: null, taifexNight: null };
   }
 }
 
@@ -350,13 +359,16 @@ async function refreshAll(options = {}) {
     render();
     const realtimeTimes = state.stocks.map((stock) => stock.quoteTime).filter(Boolean).sort();
     const latestQuoteTime = realtimeTimes.at(-1);
-    const checkedAt = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-    elements.status.textContent = latestQuoteTime
-      ? `今日盤價・最後更新 ${latestQuoteTime}`
-      : `即時報價未啟用・目前顯示 ${formatDate(state.latestDate)} 收盤`;
-    elements.status.classList.toggle("quote-warning", !latestQuoteTime);
-    if (!latestQuoteTime) {
-      showError("即時報價尚未啟用。請確認 GitHub Pages 的 Source 已改為 GitHub Actions，且 Actions 工作流程執行成功。");
+    const realtimeEnabled = state.realtimeQuotes.size > 0;
+    const generatedTime = formatGeneratedTime(state.realtimeGeneratedAt);
+    elements.status.textContent = realtimeEnabled
+      ? latestQuoteTime
+        ? `今日盤價・最後更新 ${latestQuoteTime}`
+        : `即時報價已啟用${generatedTime ? `・資料檔更新 ${generatedTime}` : ""}`
+      : `目前顯示 ${formatDate(state.latestDate)} 收盤`;
+    elements.status.classList.toggle("quote-warning", !realtimeEnabled);
+    if (!realtimeEnabled) {
+      showError("目前無法取得即時報價，已暫時顯示最近交易日收盤資料。");
     }
   } catch (error) {
     showError(`無法取得證交所資料：${error.message}`);
@@ -469,7 +481,75 @@ function render() {
   const hasAny = state.watchSymbols.length > 0;
   elements.empty.hidden = hasAny || state.loading;
   elements.board.hidden = !hasAny;
+  renderMarketOverview();
   renderSummary();
+}
+
+function renderMarketOverview() {
+  renderMarketQuote("taiex", state.markets.taiex);
+  renderMarketQuote("taifexNight", state.markets.taifexNight);
+
+  const quoteTimes = [state.markets.taiex, state.markets.taifexNight]
+    .filter(Boolean)
+    .map((quote) => `${formatDate(quote.date)} ${formatQuoteTime(quote.time)}`.trim())
+    .filter(Boolean);
+  document.querySelector("#marketQuoteTime").textContent = quoteTimes.length
+    ? `資料時間 ${quoteTimes.sort().at(-1)}`
+    : "行情暫時無法取得";
+}
+
+function renderMarketQuote(key, quote) {
+  const prefix = key === "taiex" ? "taiex" : "taifexNight";
+  const priceElement = document.querySelector(`#${prefix}Price`);
+  const changeElement = document.querySelector(`#${prefix}Change`);
+  const highElement = document.querySelector(`#${prefix}High`);
+  const lowElement = document.querySelector(`#${prefix}Low`);
+
+  if (!quote || !Number.isFinite(quote.price)) {
+    priceElement.textContent = "--";
+    changeElement.textContent = key === "taiex" ? "等待證交所報價" : "等待近月合約報價";
+    changeElement.className = "market-change";
+    highElement.textContent = "--";
+    lowElement.textContent = "--";
+    return;
+  }
+
+  const change = Number.isFinite(quote.previousClose) ? quote.price - quote.previousClose : null;
+  const changePercent = Number.isFinite(change) && quote.previousClose
+    ? (change / quote.previousClose) * 100
+    : null;
+  priceElement.textContent = formatMarketPrice(quote.price);
+  changeElement.textContent = Number.isFinite(change)
+    ? `${change > 0 ? "+" : ""}${formatMarketPrice(change)}（${formatPercent(changePercent)}）`
+    : `更新 ${formatQuoteTime(quote.time)}`;
+  changeElement.className = `market-change ${change >= 0 ? "positive" : "negative"}`;
+  highElement.textContent = formatMarketPrice(quote.high);
+  lowElement.textContent = formatMarketPrice(quote.low);
+}
+
+function formatMarketPrice(value) {
+  if (!Number.isFinite(value)) return "--";
+  return value.toLocaleString("zh-TW", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatQuoteTime(value) {
+  const digits = String(value || "").replaceAll(":", "");
+  if (!/^\d{6}$/.test(digits)) return value || "";
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}:${digits.slice(4, 6)}`;
+}
+
+function formatGeneratedTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
 }
 
 function renderSummary() {
