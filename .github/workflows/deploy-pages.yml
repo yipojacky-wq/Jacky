@@ -3,9 +3,6 @@ name: Update realtime quotes and deploy Pages
 on:
   push:
     branches: ["main"]
-  schedule:
-    # GitHub Actions 使用 UTC；採最簡單格式以確保排程能被穩定辨識。
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
