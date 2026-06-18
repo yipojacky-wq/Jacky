@@ -1,9 +1,12 @@
 const TWSE_DAILY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json";
 const TWSE_HISTORY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY";
 const TWSE_VALUE_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d";
-const REALTIME_QUOTES_URL = "data/realtime-quotes.json";
+const REALTIME_QUOTES_URL = location.protocol === "file:"
+  ? "https://yipojacky-wq.github.io/Jacky/data/realtime-quotes.json"
+  : "data/realtime-quotes.json";
 const STORAGE_KEY = "jasic-watchlist-v3";
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
+const REALTIME_POLL_MS = 60 * 1000;
 const DEFAULT_WATCH_SYMBOLS = ["2327", "2408", "2303"];
 
 const state = {
@@ -379,6 +382,33 @@ async function refreshAll(options = {}) {
   }
 }
 
+async function refreshRealtimeQuotes() {
+  if (state.loading) return;
+
+  try {
+    await loadRealtimeQuotes();
+    state.stocks = state.stocks.map((stock) => {
+      const dailyMarket = state.catalog.find((item) => item.symbol === stock.symbol);
+      if (!dailyMarket) return stock;
+      const market = mergeRealtimeQuote(dailyMarket, state.realtimeQuotes.get(stock.symbol));
+      const indicators = calculateIndicators(stock.history, market);
+      const signal = evaluateSignal(indicators, market);
+      return { ...market, history: stock.history, indicators, signal, valuation: stock.valuation };
+    });
+    render();
+
+    const realtimeTimes = state.stocks.map((stock) => stock.quoteTime).filter(Boolean).sort();
+    const latestQuoteTime = realtimeTimes.at(-1);
+    const generatedTime = formatGeneratedTime(state.realtimeGeneratedAt);
+    elements.status.textContent = latestQuoteTime
+      ? `今日盤價・最後更新 ${latestQuoteTime}`
+      : `即時報價已啟用${generatedTime ? `・資料檔更新 ${generatedTime}` : ""}`;
+    elements.status.classList.remove("quote-warning");
+  } catch {
+    // 保留上一筆可用行情，避免短暫網路問題清空畫面。
+  }
+}
+
 function setLoading(loading) {
   state.loading = loading;
   elements.refresh.classList.toggle("is-loading", loading);
@@ -712,3 +742,4 @@ document.addEventListener("click", (event) => {
 
 refreshAll({ focusSearch: false });
 setInterval(() => refreshAll(), AUTO_REFRESH_MS);
+setInterval(() => refreshRealtimeQuotes(), REALTIME_POLL_MS);
