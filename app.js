@@ -307,10 +307,17 @@ async function buildStock(symbol) {
 }
 
 function mergeRealtimeQuote(daily, quote) {
-  if (!quote || !Number.isFinite(quote.price)) return { ...daily, isRealtime: false };
+  if (!quote || !Number.isFinite(quote.price)) {
+    return {
+      ...daily,
+      previousClose: daily.close,
+      isRealtime: false
+    };
+  }
   const previousClose = Number.isFinite(quote.previousClose) ? quote.previousClose : daily.close;
   return {
     ...daily,
+    previousClose,
     close: quote.price,
     change: Number.isFinite(previousClose) ? quote.price - previousClose : daily.change,
     open: quote.open ?? daily.open,
@@ -344,8 +351,8 @@ async function refreshAll(options = {}) {
     const latestQuoteTime = realtimeTimes.at(-1);
     const checkedAt = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
     elements.status.textContent = latestQuoteTime
-      ? `盤中報價・最後更新 ${latestQuoteTime}`
-      : `最近交易日 ${formatDate(state.latestDate)}・檢查於 ${checkedAt}`;
+      ? `今日盤價・最後更新 ${latestQuoteTime}`
+      : `即時報價尚未部署・目前顯示 ${formatDate(state.latestDate)} 收盤`;
   } catch (error) {
     showError(`無法取得證交所資料：${error.message}`);
     elements.status.textContent = "資料更新失敗";
@@ -471,8 +478,8 @@ function renderSummary() {
 function createStockCard(stock) {
   const fragment = elements.template.content.cloneNode(true);
   const card = fragment.querySelector(".stock-card");
-  const changePercent = Number.isFinite(stock.close) && Number.isFinite(stock.change) && stock.close - stock.change !== 0
-    ? (stock.change / (stock.close - stock.change)) * 100
+  const changePercent = Number.isFinite(stock.change) && Number.isFinite(stock.previousClose) && stock.previousClose !== 0
+    ? (stock.change / stock.previousClose) * 100
     : null;
 
   card.dataset.symbol = stock.symbol;
@@ -486,8 +493,16 @@ function createStockCard(stock) {
       ? `即時報價 ${formatDate(stock.date)} ${stock.quoteTime}`
       : `收盤資料 ${formatDate(stock.date)}`
   );
+  setText(card, ".previous-close", formatPrice(stock.previousClose));
+  setText(card, ".previous-date", stock.isRealtime ? "前一交易日" : formatDate(stock.date));
   setText(card, ".stock-price", formatPrice(stock.close));
   setText(card, ".stock-change", `${stock.change > 0 ? "+" : ""}${formatPrice(stock.change)}（${formatPercent(changePercent)}）`);
+  setText(
+    card,
+    ".quote-update-time",
+    stock.isRealtime ? `更新 ${stock.quoteTime}` : "等待今日即時報價"
+  );
+  setText(card, ".current-price-label", stock.isRealtime ? "今日盤價" : "最近收盤");
   card.querySelector(".stock-change").classList.add(stock.change >= 0 ? "positive" : "negative");
   setText(card, ".signal-label", "JASIC 綜合訊號");
   setText(card, ".signal-title", stock.signal.title);

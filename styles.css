@@ -71,7 +71,6 @@ p {
   height: 3rem;
   flex: 0 0 auto;
   border-radius: 8px;
-  object-fit: cover;
   box-shadow: 0 4px 12px rgba(7, 85, 63, 0.2);
 }
 
@@ -363,7 +362,7 @@ p {
 
 .stock-card-main {
   display: grid;
-  grid-template-columns: minmax(11rem, 1.2fr) minmax(8rem, 0.75fr) minmax(8rem, 0.8fr) minmax(20rem, 1.7fr) auto;
+  grid-template-columns: minmax(10rem, 1fr) minmax(17rem, 1.4fr) minmax(8rem, 0.75fr) minmax(19rem, 1.5fr) auto;
   align-items: center;
   gap: 1rem;
   min-height: 8.3rem;
@@ -404,10 +403,51 @@ p {
   color: var(--sell);
 }
 
-.price-block,
+.price-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.previous-price-block,
+.current-price-block,
 .signal-block {
   display: grid;
   gap: 0.2rem;
+}
+
+.previous-price-block,
+.current-price-block {
+  min-height: 5.1rem;
+  align-content: center;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+
+.current-price-block {
+  border: 1px solid rgba(13, 111, 101, 0.28);
+  background: #f1faf7;
+}
+
+.price-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.current-price-label {
+  color: var(--accent);
+}
+
+.previous-close {
+  font-size: 1.08rem;
+}
+
+.previous-date,
+.quote-update-time {
+  color: var(--muted);
+  font-size: 0.7rem;
 }
 
 .stock-price {
@@ -718,7 +758,7 @@ p {
   }
 
   .stock-card-main {
-    grid-template-columns: 1.2fr 0.8fr 0.8fr;
+    grid-template-columns: 1fr 1.35fr 0.8fr;
   }
 
   .indicator-strip {
@@ -791,6 +831,10 @@ p {
 
   .indicator-strip {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .price-comparison {
+    grid-template-columns: 1fr 1fr;
   }
 
   .details-button {

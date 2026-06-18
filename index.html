@@ -14,7 +14,13 @@
 <body>
   <header class="app-header">
     <div class="brand">
-      <img class="brand-mark" src="assets/jasic-icon.png" alt="JASIC 金元寶">
+      <svg class="brand-mark" viewBox="0 0 72 72" role="img" aria-label="JASIC 金元寶">
+        <rect width="72" height="72" rx="12" fill="#07553f"></rect>
+        <path d="M15 25c5 3 10 4 21 4s16-1 21-4l-6 19c-2 7-8 10-15 10s-13-3-15-10z" fill="#d79b12" stroke="#ffe29a" stroke-width="2"></path>
+        <ellipse cx="36" cy="29" rx="13" ry="8" fill="#ffd45c" stroke="#fff0b5" stroke-width="2"></ellipse>
+        <path d="M20 27c-5-1-7-4-9-7 7 0 11-2 15-6l3 14M52 27c5-1 7-4 9-7-7 0-11-2-15-6l-3 14" fill="#f1b72e" stroke="#ffe29a" stroke-width="2" stroke-linejoin="round"></path>
+        <text x="36" y="66" text-anchor="middle" fill="#fff5c9" font-size="10" font-weight="800" font-family="Arial, sans-serif">JASIC</text>
+      </svg>
       <div>
         <h1>JASIC 台股觀測</h1>
         <p>直觀看訊號，也看懂訊號背後的原因</p>
@@ -142,9 +148,18 @@
           <h3 class="stock-name"></h3>
           <span class="data-date"></span>
         </div>
-        <div class="price-block">
-          <strong class="stock-price"></strong>
-          <span class="stock-change"></span>
+        <div class="price-comparison">
+          <div class="previous-price-block">
+            <span class="price-label">昨日收盤</span>
+            <strong class="previous-close"></strong>
+            <span class="previous-date"></span>
+          </div>
+          <div class="current-price-block">
+            <span class="price-label current-price-label">今日盤價</span>
+            <strong class="stock-price"></strong>
+            <span class="stock-change"></span>
+            <span class="quote-update-time"></span>
+          </div>
         </div>
         <div class="signal-block">
           <span class="signal-label"></span>
