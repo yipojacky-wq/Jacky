@@ -70,22 +70,9 @@ p {
   width: 3rem;
   height: 3rem;
   flex: 0 0 auto;
-}
-
-.brand-mark rect {
-  fill: var(--accent);
-}
-
-.brand-mark path,
-.brand-mark circle {
-  stroke: #fff;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.brand-mark circle {
-  fill: none;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(7, 85, 63, 0.2);
 }
 
 .brand h1 {

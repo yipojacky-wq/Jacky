@@ -1,6 +1,7 @@
 const TWSE_DAILY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json";
 const TWSE_HISTORY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY";
 const TWSE_VALUE_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d";
+const REALTIME_QUOTES_URL = "data/realtime-quotes.json";
 const STORAGE_KEY = "jasic-watchlist-v3";
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const DEFAULT_WATCH_SYMBOLS = ["2327", "2408", "2303"];
@@ -8,6 +9,8 @@ const DEFAULT_WATCH_SYMBOLS = ["2327", "2408", "2303"];
 const state = {
   catalog: [],
   valuations: new Map(),
+  realtimeQuotes: new Map(),
+  realtimeGeneratedAt: "",
   watchSymbols: loadWatchSymbols(),
   stocks: [],
   filter: "all",
@@ -120,6 +123,18 @@ async function loadValuations(date) {
   }
 }
 
+async function loadRealtimeQuotes() {
+  try {
+    const payload = await fetchJson(`${REALTIME_QUOTES_URL}?t=${Date.now()}`);
+    const quotes = Array.isArray(payload.quotes) ? payload.quotes : [];
+    state.realtimeQuotes = new Map(quotes.map((quote) => [quote.symbol, quote]));
+    state.realtimeGeneratedAt = payload.generatedAt || "";
+  } catch {
+    state.realtimeQuotes = new Map();
+    state.realtimeGeneratedAt = "";
+  }
+}
+
 function getMonthKeys(dateString, count = 3) {
   const year = Number(dateString.slice(0, 4));
   const month = Number(dateString.slice(4, 6));
@@ -187,8 +202,22 @@ function calculateRsi(closes, period = 14) {
 }
 
 function calculateIndicators(history, market) {
-  const closes = history.map((item) => item.close);
-  const volumes = history.map((item) => item.volume);
+  const adjustedHistory = [...history];
+  if (market.isRealtime && Number.isFinite(market.close)) {
+    const latest = adjustedHistory.at(-1);
+    if (latest && rocDateToKey(latest.date) === market.date) {
+      adjustedHistory[adjustedHistory.length - 1] = { ...latest, close: market.close, volume: market.volume };
+    } else {
+      adjustedHistory.push({
+        date: market.date,
+        close: market.close,
+        volume: market.volume
+      });
+    }
+  }
+
+  const closes = adjustedHistory.map((item) => item.close);
+  const volumes = adjustedHistory.map((item) => item.volume);
   const current = closes.at(-1) ?? market.close;
   const ma5 = average(closes.slice(-5));
   const ma20 = average(closes.slice(-20));
@@ -266,13 +295,32 @@ function evaluateSignal(indicators, market) {
 }
 
 async function buildStock(symbol) {
-  const market = state.catalog.find((item) => item.symbol === symbol);
-  if (!market) throw new Error(`找不到上市股票 ${symbol}`);
+  const dailyMarket = state.catalog.find((item) => item.symbol === symbol);
+  if (!dailyMarket) throw new Error(`找不到上市股票 ${symbol}`);
+  const quote = state.realtimeQuotes.get(symbol);
+  const market = mergeRealtimeQuote(dailyMarket, quote);
   const history = await loadHistory(symbol);
   const indicators = calculateIndicators(history, market);
   const signal = evaluateSignal(indicators, market);
   const valuation = state.valuations.get(symbol) || {};
   return { ...market, history, indicators, signal, valuation };
+}
+
+function mergeRealtimeQuote(daily, quote) {
+  if (!quote || !Number.isFinite(quote.price)) return { ...daily, isRealtime: false };
+  const previousClose = Number.isFinite(quote.previousClose) ? quote.previousClose : daily.close;
+  return {
+    ...daily,
+    close: quote.price,
+    change: Number.isFinite(previousClose) ? quote.price - previousClose : daily.change,
+    open: quote.open ?? daily.open,
+    high: quote.high ?? daily.high,
+    low: quote.low ?? daily.low,
+    volume: quote.volume ?? daily.volume,
+    date: quote.date || daily.date,
+    quoteTime: quote.time || "",
+    isRealtime: true
+  };
 }
 
 async function refreshAll(options = {}) {
@@ -282,6 +330,7 @@ async function refreshAll(options = {}) {
 
   try {
     await loadMarketCatalog();
+    await loadRealtimeQuotes();
     const results = await Promise.allSettled(state.watchSymbols.map(buildStock));
     state.stocks = results
       .filter((result) => result.status === "fulfilled")
@@ -291,8 +340,12 @@ async function refreshAll(options = {}) {
     if (failed.length) showError(`有 ${failed.length} 檔股票暫時無法更新，請稍後再試。`);
 
     render();
-    const time = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-    elements.status.textContent = `行情日 ${formatDate(state.latestDate)}・更新於 ${time}`;
+    const realtimeTimes = state.stocks.map((stock) => stock.quoteTime).filter(Boolean).sort();
+    const latestQuoteTime = realtimeTimes.at(-1);
+    const checkedAt = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+    elements.status.textContent = latestQuoteTime
+      ? `盤中報價・最後更新 ${latestQuoteTime}`
+      : `最近交易日 ${formatDate(state.latestDate)}・檢查於 ${checkedAt}`;
   } catch (error) {
     showError(`無法取得證交所資料：${error.message}`);
     elements.status.textContent = "資料更新失敗";
@@ -426,7 +479,13 @@ function createStockCard(stock) {
   card.dataset.signal = stock.signal.key;
   setText(card, ".stock-code", stock.symbol);
   setText(card, ".stock-name", stock.name);
-  setText(card, ".data-date", `資料日 ${formatDate(stock.date)}`);
+  setText(
+    card,
+    ".data-date",
+    stock.isRealtime
+      ? `即時報價 ${formatDate(stock.date)} ${stock.quoteTime}`
+      : `收盤資料 ${formatDate(stock.date)}`
+  );
   setText(card, ".stock-price", formatPrice(stock.close));
   setText(card, ".stock-change", `${stock.change > 0 ? "+" : ""}${formatPrice(stock.change)}（${formatPercent(changePercent)}）`);
   card.querySelector(".stock-change").classList.add(stock.change >= 0 ? "positive" : "negative");

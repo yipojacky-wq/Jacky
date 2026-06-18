@@ -1,0 +1,17 @@
+{
+  "name": "JASIC 台股觀測",
+  "short_name": "JASIC",
+  "description": "台股即時觀測與技術指標學習看板",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f4",
+  "theme_color": "#07553f",
+  "icons": [
+    {
+      "src": "assets/jasic-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
