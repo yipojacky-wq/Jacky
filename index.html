@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JASIC 股票觀測投資 App</title>
+  <meta name="description" content="JASIC 台股觀測看板，以證交所公開資料提供買進觀察、可持有與拋售警示，並說明常見技術指標。">
+  <title>JASIC 台股觀測學習看板</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,144 +12,165 @@
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
         <rect x="6" y="8" width="52" height="48" rx="10"></rect>
-        <path d="M18 42l9-10 8 6 12-17" fill="none"></path>
-        <circle cx="47" cy="21" r="4"></circle>
+        <path d="M17 42l10-11 8 6 12-17" fill="none"></path>
+        <circle cx="47" cy="20" r="4"></circle>
       </svg>
       <div>
-        <h1>JASIC 股票觀測</h1>
-        <p>用簡單指標建立觀察清單、風險提醒與參考評分</p>
+        <h1>JASIC 台股觀測</h1>
+        <p>直觀看訊號，也看懂訊號背後的原因</p>
       </div>
     </div>
-    <div class="header-actions">
-      <button id="exportBtn" type="button">匯出資料</button>
-      <label class="file-button">
-        匯入 CSV
-        <input id="csvInput" type="file" accept=".csv,text/csv">
-      </label>
+    <div class="update-area">
+      <span id="updateStatus" class="update-status">準備載入證交所資料</span>
+      <button id="refreshBtn" class="icon-button" type="button" title="更新全部資料" aria-label="更新全部資料">
+        <span aria-hidden="true">↻</span>
+      </button>
     </div>
   </header>
 
   <main class="app-shell">
-    <section class="panel input-panel" aria-labelledby="formTitle">
-      <div class="panel-heading">
-        <h2 id="formTitle">新增觀測標的</h2>
-        <span id="editState">新增模式</span>
+    <section class="search-section" aria-labelledby="searchTitle">
+      <div>
+        <span class="eyebrow">新增觀察</span>
+        <h2 id="searchTitle">輸入股票名稱或代號</h2>
+        <p>目前支援臺灣證券交易所上市股票，資料依最近交易日更新。</p>
       </div>
-      <form id="stockForm" class="stock-form">
-        <label>
-          股票代號
-          <input id="symbol" name="symbol" required placeholder="例：2330 / AAPL" autocomplete="off">
-        </label>
-        <label>
-          股票名稱
-          <input id="name" name="name" required placeholder="例：台積電 / Apple" autocomplete="off">
-        </label>
-        <label>
-          現價
-          <input id="price" name="price" required type="number" min="0" step="0.01" placeholder="100">
-        </label>
-        <label>
-          目標價
-          <input id="target" name="target" required type="number" min="0" step="0.01" placeholder="120">
-        </label>
-        <label>
-          月營收/營收成長 %
-          <input id="growth" name="growth" required type="number" step="0.1" placeholder="8">
-        </label>
-        <label>
-          本益比 PE
-          <input id="pe" name="pe" required type="number" min="0" step="0.1" placeholder="18">
-        </label>
-        <label>
-          近 20 日漲跌 %
-          <input id="momentum" name="momentum" required type="number" step="0.1" placeholder="5">
-        </label>
-        <label>
-          風險等級
-          <select id="risk" name="risk">
-            <option value="1">低</option>
-            <option value="2" selected>中</option>
-            <option value="3">高</option>
-          </select>
-        </label>
-        <label class="wide">
-          備註
-          <textarea id="notes" name="notes" rows="3" placeholder="例如：法說會後再追蹤、等待回測季線"></textarea>
-        </label>
-        <div class="form-actions wide">
-          <button id="submitBtn" type="submit">加入觀察</button>
-          <button id="cancelEditBtn" type="button" class="secondary" hidden>取消編輯</button>
+      <form id="stockSearchForm" class="stock-search" autocomplete="off">
+        <div class="search-box">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="stockSearchInput" type="search" placeholder="例如：台積電、2330" aria-label="股票名稱或代號">
+          <button id="clearSearchBtn" class="clear-button" type="button" aria-label="清除搜尋" hidden>×</button>
         </div>
+        <button id="searchSubmitBtn" type="submit">搜尋</button>
+        <div id="searchResults" class="search-results" role="listbox" hidden></div>
       </form>
     </section>
 
-    <section class="dashboard">
-      <div class="metrics-grid">
-        <article class="metric">
-          <span>追蹤檔數</span>
-          <strong id="totalCount">0</strong>
-        </article>
-        <article class="metric">
-          <span>平均評分</span>
-          <strong id="avgScore">0</strong>
-        </article>
-        <article class="metric">
-          <span>買進觀察</span>
-          <strong id="buyCount">0</strong>
-        </article>
-        <article class="metric">
-          <span>高風險</span>
-          <strong id="riskCount">0</strong>
-        </article>
+    <section class="signal-summary" aria-label="觀察清單摘要">
+      <article class="summary-item buy-summary">
+        <span class="summary-dot"></span>
+        <div><strong id="buyCount">0</strong><span>買進觀察</span></div>
+      </article>
+      <article class="summary-item hold-summary">
+        <span class="summary-dot"></span>
+        <div><strong id="holdCount">0</strong><span>可持有</span></div>
+      </article>
+      <article class="summary-item sell-summary">
+        <span class="summary-dot"></span>
+        <div><strong id="sellCount">0</strong><span>拋售警示</span></div>
+      </article>
+      <div class="legend-note">
+        訊號由均線、RSI、動能與量能綜合判讀
       </div>
+    </section>
 
-      <section class="panel chart-panel" aria-labelledby="chartTitle">
-        <div class="panel-heading">
-          <h2 id="chartTitle">評分分布</h2>
-          <select id="sortBy" aria-label="排序方式">
-            <option value="score">依評分</option>
-            <option value="upside">依上漲空間</option>
-            <option value="risk">依風險</option>
-            <option value="symbol">依代號</option>
-          </select>
+    <section class="watch-section" aria-labelledby="watchTitle">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">我的清單</span>
+          <h2 id="watchTitle">股票觀測看板</h2>
         </div>
-        <canvas id="scoreChart" width="900" height="280" aria-label="股票評分長條圖"></canvas>
-      </section>
+        <select id="signalFilter" aria-label="篩選觀測訊號">
+          <option value="all">全部訊號</option>
+          <option value="buy">買進觀察</option>
+          <option value="hold">可持有</option>
+          <option value="sell">拋售警示</option>
+        </select>
+      </div>
+
+      <div id="loadingState" class="loading-state" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <p>正在整理行情與技術指標…</p>
+      </div>
+
+      <div id="stockBoard" class="stock-board"></div>
+
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon" aria-hidden="true">＋</div>
+        <h3>建立第一筆觀察</h3>
+        <p>在上方輸入股票名稱或代號，系統會自動抓取資料並產生觀測訊號。</p>
+        <div class="quick-picks">
+          <button type="button" data-quick-symbol="2327">國巨 2327</button>
+          <button type="button" data-quick-symbol="2408">南亞科 2408</button>
+          <button type="button" data-quick-symbol="2303">聯電 2303</button>
+        </div>
+      </div>
     </section>
 
-    <section class="panel table-panel" aria-labelledby="tableTitle">
-      <div class="panel-heading">
-        <h2 id="tableTitle">觀察清單</h2>
-        <input id="searchInput" type="search" placeholder="搜尋代號、名稱或備註">
+    <section class="learn-section" aria-labelledby="learnTitle">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">快速入門</span>
+          <h2 id="learnTitle">看板上的指標是什麼？</h2>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>標的</th>
-              <th>現價</th>
-              <th>目標價</th>
-              <th>上漲空間</th>
-              <th>JASIC 分數</th>
-              <th>訊號</th>
-              <th>風險</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="stockRows"></tbody>
-        </table>
+      <div class="learn-grid">
+        <article>
+          <span class="learn-tag">趨勢</span>
+          <h3>MA5 / MA20 均線</h3>
+          <p>MA5 是近 5 個交易日平均價格，MA20 約代表一個月趨勢。短均線站上長均線通常表示近期走勢轉強。</p>
+        </article>
+        <article>
+          <span class="learn-tag">強弱</span>
+          <h3>RSI 14</h3>
+          <p>RSI 衡量漲跌力道。50 以上偏強；70 以上可能過熱；30 以下可能超賣，但都不代表價格一定立即反轉。</p>
+        </article>
+        <article>
+          <span class="learn-tag">動能</span>
+          <h3>20 日漲跌</h3>
+          <p>比較目前價格和 20 個交易日前的差異，用來觀察中短期方向。正值是上漲動能，負值代表近期承壓。</p>
+        </article>
+        <article>
+          <span class="learn-tag">量價</span>
+          <h3>成交量比</h3>
+          <p>近 5 日均量與 20 日均量的比值。大於 1 代表近期量能放大，仍須配合價格方向判斷買盤或賣壓。</p>
+        </article>
       </div>
-      <p class="notice">此工具僅供朋友間整理觀察與討論，不構成買賣建議。請自行確認資料來源並控管風險。</p>
     </section>
+
+    <p class="disclaimer">
+      本工具使用臺灣證券交易所公開資料，僅供學習與建立觀察紀律，不構成投資建議。訊號是歷史價格的簡化判讀，不保證未來績效。
+    </p>
   </main>
 
-  <template id="emptyTemplate">
-    <tr>
-      <td colspan="8" class="empty-state">
-        尚未新增股票。可以先使用範例資料，或直接新增自己的觀察標的。
-        <button id="loadSampleBtn" type="button">載入範例資料</button>
-      </td>
-    </tr>
+  <template id="stockCardTemplate">
+    <article class="stock-card">
+      <div class="stock-card-main">
+        <div class="stock-identity">
+          <button class="remove-button" type="button" title="移除觀察" aria-label="移除觀察">×</button>
+          <span class="stock-code"></span>
+          <h3 class="stock-name"></h3>
+          <span class="data-date"></span>
+        </div>
+        <div class="price-block">
+          <strong class="stock-price"></strong>
+          <span class="stock-change"></span>
+        </div>
+        <div class="signal-block">
+          <span class="signal-label"></span>
+          <strong class="signal-title"></strong>
+          <span class="signal-score"></span>
+        </div>
+        <div class="indicator-strip">
+          <div><span>MA5</span><strong class="ma5-value"></strong></div>
+          <div><span>MA20</span><strong class="ma20-value"></strong></div>
+          <div><span>RSI 14</span><strong class="rsi-value"></strong></div>
+          <div><span>20 日</span><strong class="momentum-value"></strong></div>
+        </div>
+        <button class="details-button" type="button" aria-expanded="false">
+          <span>查看判讀與學習</span><b aria-hidden="true">⌄</b>
+        </button>
+      </div>
+      <div class="stock-details" hidden>
+        <div class="reason-list"></div>
+        <div class="indicator-lessons"></div>
+        <div class="value-strip">
+          <span>本益比 <strong class="pe-value"></strong></span>
+          <span>殖利率 <strong class="yield-value"></strong></span>
+          <span>近 5/20 日量比 <strong class="volume-ratio-value"></strong></span>
+        </div>
+      </div>
+    </article>
   </template>
 
   <script src="app.js"></script>
