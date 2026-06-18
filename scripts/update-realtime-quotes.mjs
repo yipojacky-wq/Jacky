@@ -3,7 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 const DAILY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json";
 const MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp";
 const TAIFEX_QUOTE_URL = "https://mis.taifex.com.tw/futures/api/getQuoteList";
-const BATCH_SIZE = 80;
+const BATCH_SIZE = 40;
+const FETCH_ATTEMPTS = 3;
 
 function toNumber(value) {
   const normalized = String(value ?? "").replaceAll(",", "").trim();
@@ -28,11 +29,24 @@ function getTradePrice(quote) {
     ?? toNumber(quote.y);
 }
 
-async function fetchJson(url, headers = {}) {
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
-  const text = await response.text();
-  return JSON.parse(text.trim());
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function fetchJson(url, headers = {}, attempts = FETCH_ATTEMPTS) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
+      const text = await response.text();
+      return JSON.parse(text.trim());
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await wait(attempt * 1000);
+    }
+  }
+  throw lastError;
 }
 
 async function postJson(url, body) {
@@ -146,8 +160,12 @@ const quotes = [];
 
 for (let index = 0; index < symbols.length; index += BATCH_SIZE) {
   const batch = symbols.slice(index, index + BATCH_SIZE);
-  const batchQuotes = await getQuoteBatch(batch);
-  quotes.push(...batchQuotes.map(compactQuote));
+  try {
+    const batchQuotes = await getQuoteBatch(batch);
+    quotes.push(...batchQuotes.map(compactQuote));
+  } catch (error) {
+    console.warn(`Skipped quote batch ${index}-${index + batch.length - 1}: ${error.message}`);
+  }
 }
 
 const [taiex, taifexNight] = await Promise.all([
