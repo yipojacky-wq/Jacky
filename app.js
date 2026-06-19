@@ -1,12 +1,11 @@
 const TWSE_DAILY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json";
 const TWSE_HISTORY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY";
 const TWSE_VALUE_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d";
-const REALTIME_QUOTES_URL = location.protocol === "file:"
-  ? "https://yipojacky-wq.github.io/Jacky/data/realtime-quotes.json"
-  : "data/realtime-quotes.json";
+const WORKER_QUOTES_URL = "https://jasic-quotes.yipo-jacky.workers.dev/quotes";
+const STATIC_QUOTES_URL = "https://yipojacky-wq.github.io/Jacky/data/realtime-quotes.json";
 const STORAGE_KEY = "jasic-watchlist-v3";
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
-const REALTIME_POLL_MS = 60 * 1000;
+const REALTIME_POLL_MS = 15 * 1000;
 const DEFAULT_WATCH_SYMBOLS = ["2327", "2408", "2303"];
 
 const state = {
@@ -131,21 +130,34 @@ async function loadValuations(date) {
 }
 
 async function loadRealtimeQuotes() {
-  try {
-    const payload = await fetchJson(`${REALTIME_QUOTES_URL}?t=${Date.now()}`);
-    const quotes = Array.isArray(payload.quotes) ? payload.quotes : [];
-    state.realtimeQuotes = new Map(quotes.map((quote) => [quote.symbol, quote]));
-    state.realtimeGeneratedAt = payload.generatedAt || "";
-    state.markets = {
-      taiex: payload.markets?.taiex || null,
-      taifexNight: payload.markets?.taifexNight || null
-    };
-    if (!quotes.length) throw new Error("即時報價資料檔尚未產生");
-  } catch {
-    state.realtimeQuotes = new Map();
-    state.realtimeGeneratedAt = "";
-    state.markets = { taiex: null, taifexNight: null };
+  const symbols = state.watchSymbols.join(",");
+  const sources = [
+    `${WORKER_QUOTES_URL}?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`,
+    `${STATIC_QUOTES_URL}?t=${Date.now()}`
+  ];
+
+  for (const source of sources) {
+    try {
+      const payload = await fetchJson(source);
+      const quotes = Array.isArray(payload.quotes) ? payload.quotes : [];
+      if (!quotes.length && !payload.markets?.taiex && !payload.markets?.taifexNight) {
+        throw new Error("即時報價服務未回傳資料");
+      }
+      state.realtimeQuotes = new Map(quotes.map((quote) => [quote.symbol, quote]));
+      state.realtimeGeneratedAt = payload.generatedAt || "";
+      state.markets = {
+        taiex: payload.markets?.taiex || null,
+        taifexNight: payload.markets?.taifexNight || null
+      };
+      return;
+    } catch {
+      // Worker 尚未部署或暫時失效時，繼續使用 GitHub Pages 靜態報價檔。
+    }
   }
+
+  state.realtimeQuotes = new Map();
+  state.realtimeGeneratedAt = "";
+  state.markets = { taiex: null, taifexNight: null };
 }
 
 function getMonthKeys(dateString, count = 3) {
