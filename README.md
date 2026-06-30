@@ -11,6 +11,7 @@ Patent Engineering Framework Phase 1 MVP。
 - 建立案件與保存狀態
 - 貼上原始揭露內容
 - 上傳 `.txt`、`.md`、`.docx`、可抽取文字的 `.pdf`
+- 手機拍照或上傳圖片後，以 Gemini Vision 進行 OCR 文字辨識
 - AI 產生 Engineering Definition
 - AI 產生 Disclosure Completion
 - AI 產生 Progressive Elaboration

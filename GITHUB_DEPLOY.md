@@ -69,6 +69,16 @@ APP_DEMO_MODE=false
 APP_STORAGE_PATH=/tmp/disclosure-completion-cases.json
 ```
 
+本 OCR 版本的手機拍照辨識使用 Gemini Vision，因此請優先設定：
+
+```env
+AI_PROVIDER=gemini
+GOOGLE_API_KEY=你的 Gemini API Key
+GEMINI_MODEL=gemini-2.5-flash
+APP_DEMO_MODE=false
+APP_STORAGE_PATH=/tmp/disclosure-completion-cases.json
+```
+
 7. Deploy。
 8. Render 會給你一個網址，例如：
 

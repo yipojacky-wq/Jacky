@@ -14,9 +14,11 @@ from .services.ai_completion import (
     generate_disclosure_completion,
     generate_embodiment_expansion,
     generate_engineering_definition,
+    generate_low_quota_completion_bundle,
     generate_progressive_elaboration_for_disclosure,
 )
 from .services.document_text import extract_upload_text
+from .services.ai_gateway import ai_gateway
 from .storage import make_store
 
 load_dotenv(override=True)
@@ -95,7 +97,11 @@ def clear_all_cases():
 async def extract_text(file: UploadFile = File(...)):
     raw = await file.read()
     try:
-        text = extract_upload_text(file.filename or "upload.txt", file.content_type or "application/octet-stream", raw)
+        content_type = file.content_type or "application/octet-stream"
+        if content_type.startswith("image/"):
+            text = ai_gateway.image_ocr_task(raw, content_type, file.filename or "image")
+        else:
+            text = extract_upload_text(file.filename or "upload.txt", content_type, raw)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {
@@ -110,7 +116,11 @@ async def upload_disclosure(case_id: str, file: UploadFile = File(...)):
     case = get_or_404(case_id)
     raw = await file.read()
     try:
-        text = extract_upload_text(file.filename or "upload.txt", file.content_type or "application/octet-stream", raw)
+        content_type = file.content_type or "application/octet-stream"
+        if content_type.startswith("image/"):
+            text = ai_gateway.image_ocr_task(raw, content_type, file.filename or "image")
+        else:
+            text = extract_upload_text(file.filename or "upload.txt", content_type, raw)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -211,6 +221,27 @@ def run_full_completion(case_id: str):
         case_id,
         {
             "completed_disclosure_draft": draft,
+            "status": CaseStatus.disclosure_completed,
+        },
+    )
+
+
+@app.post("/cases/{case_id}/run-low-quota-completion")
+def run_low_quota_completion(case_id: str):
+    case = get_or_404(case_id)
+    bundle = generate_low_quota_completion_bundle(case)
+    definition = bundle.get("engineering_definition", {})
+    return store.update_case(
+        case_id,
+        {
+            "engineering_definition": definition,
+            "disclosure_completion": bundle.get("disclosure_completion", {}),
+            "progressive_elaboration_disclosure": bundle.get("progressive_elaboration_disclosure", {}),
+            "embodiment_expansion": bundle.get("embodiment_expansion", {}),
+            "completed_disclosure_draft": bundle.get("completed_disclosure_draft", ""),
+            "original_solution": definition.get("original_solution", ""),
+            "engineering_boundary": definition.get("engineering_boundary", ""),
+            "project_scope": definition.get("project_scope", ""),
             "status": CaseStatus.disclosure_completed,
         },
     )

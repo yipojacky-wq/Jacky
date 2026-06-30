@@ -1,10 +1,10 @@
-const CACHE_NAME = "disclosure-completion-ai-v7";
+const CACHE_NAME = "disclosure-completion-ai-ocr-v3";
 const ASSETS = [
   "/",
   "/index.html",
-  "/assets/app.css?v=20260630-7",
-  "/assets/app.js?v=20260630-7",
-  "/manifest.webmanifest?v=20260630-7",
+  "/assets/app.css?v=20260630-ocr-3",
+  "/assets/app.js?v=20260630-ocr-3",
+  "/manifest.webmanifest?v=20260630-ocr-3",
 ];
 
 self.addEventListener("activate", (event) => {

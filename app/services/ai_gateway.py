@@ -1,5 +1,6 @@
 import json
 import os
+import base64
 from typing import Any, Dict
 from urllib import parse, request
 
@@ -53,6 +54,19 @@ class AIGateway:
             return self._call_openai_compatible_text_task(task_prompt)
         except Exception as exc:
             return f"{fallback}\n\n## AI Gateway Warning\n\n- {self.provider} 呼叫失敗，已改用本機 fallback：{exc}\n"
+
+    def image_ocr_task(self, image_bytes: bytes, mime_type: str, filename: str = "image") -> str:
+        if self.demo_mode:
+            return "Demo OCR：請在正式模式使用 Gemini API 進行圖片文字辨識。"
+        if self.provider != "gemini":
+            raise ValueError("圖片 OCR 目前僅支援 AI_PROVIDER=gemini")
+        prompt = (
+            "請對此圖片進行 OCR 文字辨識，輸出繁體中文或原文文字。"
+            "若圖片包含專利揭露書、技術文件、手寫或列印文字，請盡量保留段落、條列與標號。"
+            "只輸出辨識出的文字，不要摘要，不要加入未出現在圖片中的內容。"
+            f"\n\n檔名：{filename}"
+        )
+        return self._call_gemini_with_image(prompt, image_bytes, mime_type)
 
     def _call_openai_compatible_json_task(self, task_prompt: str) -> Dict[str, Any]:
         from openai import OpenAI
@@ -163,6 +177,48 @@ class AIGateway:
         with request.urlopen(req, timeout=90) as response:
             data = json.loads(response.read().decode("utf-8"))
 
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        return "".join(part.get("text", "") for part in parts).strip()
+
+    def _call_gemini_with_image(self, task_prompt: str, image_bytes: bytes, mime_type: str) -> str:
+        if not self.google_api_key:
+            raise ValueError("GOOGLE_API_KEY or GEMINI_API_KEY is required when AI_PROVIDER=gemini")
+        if not mime_type.startswith("image/"):
+            raise ValueError("OCR input must be an image")
+
+        endpoint = (
+            f"{self.gemini_base_url}/models/{parse.quote(self.gemini_model, safe='')}:generateContent"
+            f"?key={parse.quote(self.google_api_key)}"
+        )
+        payload = {
+            "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": task_prompt},
+                        {
+                            "inline_data": {
+                                "mime_type": mime_type,
+                                "data": base64.b64encode(image_bytes).decode("ascii"),
+                            }
+                        },
+                    ],
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0,
+                "responseMimeType": "text/plain",
+            },
+        }
+        req = request.Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with request.urlopen(req, timeout=120) as response:
+            data = json.loads(response.read().decode("utf-8"))
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         return "".join(part.get("text", "") for part in parts).strip()
 

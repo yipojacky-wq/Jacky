@@ -4,15 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1f4d5a" />
-    <title>揭露書補全 AI MVP</title>
-    <link rel="manifest" href="/manifest.webmanifest?v=20260630-7" />
-    <link rel="stylesheet" href="/assets/app.css?v=20260630-7" />
+    <title>揭露書補全 AI OCR MVP</title>
+    <link rel="manifest" href="/manifest.webmanifest?v=20260630-ocr-3" />
+    <link rel="stylesheet" href="/assets/app.css?v=20260630-ocr-3" />
   </head>
   <body>
     <header class="topbar">
       <div>
         <p class="eyebrow">專利工程框架 · 第一階段 MVP</p>
-        <h1>揭露書補全 AI</h1>
+        <h1>揭露書補全 AI OCR</h1>
       </div>
       <div class="notice">AI 初稿，需由專利工程師確認；不生成 Claim，不生成完整專利說明書。</div>
     </header>
@@ -77,7 +77,11 @@
               <h3>上傳檔案</h3>
               <input id="uploadFile" type="file" accept=".txt,.md,.csv,.json,.docx,.pdf" />
               <button id="uploadButton" type="button">上傳並擷取文字</button>
-              <p id="uploadStatus" class="case-meta">支援 txt、md、docx、可抽取文字的 pdf。</p>
+              <hr />
+              <h3>手機多頁拍照 OCR</h3>
+              <input id="photoFile" type="file" accept="image/*" capture="environment" multiple />
+              <button id="photoOcrButton" type="button">多頁拍照 OCR 擷取文字</button>
+              <p id="uploadStatus" class="case-meta">支援 txt、md、docx、可抽取文字的 pdf；手機可選多張照片作為多頁 OCR。</p>
               <div id="sourceDocs" class="doc-list"></div>
             </div>
           </div>
@@ -90,7 +94,8 @@
               <h2>可撰寫揭露書生成</h2>
             </div>
             <div class="actions">
-              <button data-ai="run-full-completion" class="primary" type="button">一鍵補全</button>
+              <button data-ai="run-low-quota-completion" class="primary" type="button">省額度一鍵補全</button>
+              <button data-ai="run-full-completion" type="button">完整多步補全</button>
               <button data-ai="clear-completion" type="button">清空補全結果</button>
               <button data-ai="engineering-definition" type="button">產生工程定義</button>
               <button data-ai="complete-disclosure" type="button">產生揭露補全</button>
@@ -162,6 +167,6 @@
     </main>
 
     <div id="toast" class="toast"></div>
-    <script src="/assets/app.js?v=20260630-7"></script>
+    <script src="/assets/app.js?v=20260630-ocr-3"></script>
   </body>
 </html>

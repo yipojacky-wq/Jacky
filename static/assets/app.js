@@ -227,15 +227,73 @@ $("#saveCase").addEventListener("click", async () => {
 });
 
 $("#uploadButton").addEventListener("click", async () => {
-  const button = $("#uploadButton");
-  const status = $("#uploadStatus");
   const file = $("#uploadFile").files[0];
-  if (!file) {
-    status.textContent = "尚未選擇檔案。";
-    return toast("請選擇 txt、docx 或 pdf 檔案");
+  await extractFileToDisclosure(file, $("#uploadButton"), "上傳並擷取文字", "請選擇 txt、docx、pdf 或文字檔案");
+  if (file) $("#uploadFile").value = "";
+});
+
+$("#photoOcrButton").addEventListener("click", async () => {
+  const files = Array.from($("#photoFile").files || []);
+  await extractPhotoPagesToDisclosure(files, $("#photoOcrButton"), "多頁拍照 OCR 擷取文字");
+  if (files.length) $("#photoFile").value = "";
+});
+
+async function extractPhotoPagesToDisclosure(files, button, originalLabel) {
+  const status = $("#uploadStatus");
+  if (!files.length) {
+    status.textContent = "尚未選擇照片。";
+    return toast("請先拍照或選擇一張以上圖片");
   }
   button.disabled = true;
-  button.textContent = "上傳中...";
+  button.textContent = "多頁 OCR 中...";
+  const extractedPages = [];
+  try {
+    for (const [index, file] of files.entries()) {
+      status.textContent = `正在 OCR 第 ${index + 1} / ${files.length} 頁：${file.name}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      const extracted = await api("/extract-text", { method: "POST", body: formData });
+      extractedPages.push(`【OCR 第 ${index + 1} 頁：${extracted.filename || file.name}】\n${extracted.text.trim()}`);
+    }
+
+    const form = $("#caseForm");
+    form.elements.transcript_or_disclosure_text.value = [
+      form.elements.transcript_or_disclosure_text.value.trim(),
+      extractedPages.join("\n\n"),
+    ].filter(Boolean).join("\n\n");
+
+    if (currentCase) {
+      currentCase = await api(`/cases/${currentCase.case_id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...detailFormPayload(),
+          status: "Uploaded",
+        }),
+      });
+      await loadCases();
+      showView("detail");
+      status.textContent = `已完成 ${files.length} 頁 OCR，並寫入揭露內容。`;
+    } else {
+      status.textContent = `已完成 ${files.length} 頁 OCR，請在 Dashboard 建立案件後保存。`;
+    }
+    toast(`多頁 OCR 完成：${files.length} 頁`);
+  } catch (error) {
+    status.textContent = `多頁 OCR 失敗：${readableError(error)}`;
+    toast(readableError(error));
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+async function extractFileToDisclosure(file, button, originalLabel, emptyMessage) {
+  const status = $("#uploadStatus");
+  if (!file) {
+    status.textContent = "尚未選擇檔案。";
+    return toast(emptyMessage);
+  }
+  button.disabled = true;
+  button.textContent = "處理中...";
   status.textContent = `正在上傳並解析：${file.name}`;
   try {
     const formData = new FormData();
@@ -261,16 +319,15 @@ $("#uploadButton").addEventListener("click", async () => {
     } else {
       status.textContent = `已擷取文字並放入輸入區：${file.name}。請按「儲存案件」或到 Dashboard 建立案件。`;
     }
-    $("#uploadFile").value = "";
     toast("檔案已上傳並擷取文字");
   } catch (error) {
     status.textContent = `上傳失敗：${readableError(error)}`;
     toast(readableError(error));
   } finally {
     button.disabled = false;
-    button.textContent = "上傳並擷取文字";
+    button.textContent = originalLabel;
   }
-});
+}
 
 function readableError(error) {
   const raw = error?.message || String(error);
