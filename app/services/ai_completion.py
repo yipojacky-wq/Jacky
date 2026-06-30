@@ -316,7 +316,7 @@ def generate_low_quota_completion_bundle(case: Any) -> Dict[str, Any]:
 {_clip(source_text)}
 """
     result = ai_gateway.json_task(prompt, fallback)
-    return _normalize_low_quota_bundle(result, fallback)
+    return _normalize_low_quota_bundle(result, fallback, case)
 
 
 def _build_low_quota_fallback(case: Any, seed: str) -> Dict[str, Any]:
@@ -407,7 +407,7 @@ def _build_low_quota_fallback(case: Any, seed: str) -> Dict[str, Any]:
     return bundle
 
 
-def _normalize_low_quota_bundle(result: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_low_quota_bundle(result: Dict[str, Any], fallback: Dict[str, Any], case: Any) -> Dict[str, Any]:
     normalized = {}
     for key in [
         "engineering_definition",
@@ -417,8 +417,10 @@ def _normalize_low_quota_bundle(result: Dict[str, Any], fallback: Dict[str, Any]
     ]:
         value = result.get(key)
         normalized[key] = value if isinstance(value, dict) else fallback[key]
-    draft = result.get("completed_disclosure_draft")
-    normalized["completed_disclosure_draft"] = draft if isinstance(draft, str) and draft.strip() else fallback["completed_disclosure_draft"]
+    # Rebuild Markdown from structured fields instead of trusting the model's
+    # full draft text. This prevents Python/JSON-looking dict syntax from
+    # leaking into the completed disclosure draft.
+    normalized["completed_disclosure_draft"] = _build_bundle_completed_draft(case, normalized)
     if result.get("ai_gateway_warning"):
         warning = result["ai_gateway_warning"]
         for section in normalized.values():
@@ -448,25 +450,25 @@ def _build_bundle_completed_draft(case: Any, bundle: Dict[str, Any]) -> str:
 {_markdown_list(completion.get("invention_title_options"))}
 
 二、技術領域
-{completion.get("technical_field", "")}
+{_format_markdown_value(completion.get("technical_field", ""))}
 
 三、先前技術與現有問題
-{completion.get("background_problem", "")}
+{_format_markdown_value(completion.get("background_problem", ""))}
 
 四、待解決技術問題
-{completion.get("technical_problem") or definition.get("technical_problem", "")}
+{_format_markdown_value(completion.get("technical_problem") or definition.get("technical_problem", ""))}
 
 五、發明目的
-{completion.get("invention_objective", "")}
+{_format_markdown_value(completion.get("invention_objective", ""))}
 
 六、核心解決手段
-{completion.get("core_solution") or definition.get("original_solution", "")}
+{_format_markdown_value(completion.get("core_solution") or definition.get("original_solution", ""))}
 
 七、必要技術元素組成
 {_markdown_list(completion.get("necessary_technical_elements"))}
 
 八、系統架構
-{completion.get("system_architecture", "")}
+{_format_markdown_value(completion.get("system_architecture", ""))}
 
 九、方法流程
 {_markdown_list(completion.get("method_flow"))}
@@ -475,7 +477,7 @@ def _build_bundle_completed_draft(case: Any, bundle: Dict[str, Any]) -> str:
 {_markdown_list(completion.get("data_flow"))}
 
 十一、主要實施例
-{embodiment.get("main_embodiment", "")}
+{_format_markdown_value(embodiment.get("main_embodiment", ""))}
 
 十二、替代實施例
 {_markdown_list(completion.get("alternative_embodiments"))}
@@ -491,8 +493,8 @@ def _build_bundle_completed_draft(case: Any, bundle: Dict[str, Any]) -> str:
 十五、進步性鋪陳重點
 - 既有方案限制：{_markdown_list(elaboration.get("known_solution_limitations"))}
 - 既有方法不足：{_markdown_list(elaboration.get("why_existing_methods_are_insufficient"))}
-- 技術改良邏輯：{elaboration.get("technical_improvement_logic", "")}
-- 必要組合理由：{elaboration.get("necessary_combination_reasoning", "")}
+- 技術改良邏輯：{_format_markdown_value(elaboration.get("technical_improvement_logic", ""))}
+- 必要組合理由：{_format_markdown_value(elaboration.get("necessary_combination_reasoning", ""))}
 - 技術效果鏈：{_markdown_list(elaboration.get("technical_effect_chain"))}
 - 進步性支撐點：{_markdown_list(elaboration.get("inventive_step_support_points"))}
 
@@ -508,6 +510,13 @@ def _build_bundle_completed_draft(case: Any, bundle: Dict[str, Any]) -> str:
 
 
 def generate_completed_disclosure_draft(case: Any) -> str:
+    # Build the final Markdown from structured AI module outputs. This keeps the
+    # report editable and prevents raw dict/JSON/Python repr fragments from
+    # appearing in the completed disclosure draft.
+    return _build_local_completed_draft(case)
+
+
+def _generate_completed_disclosure_draft_with_ai(case: Any) -> str:
     context = _case_context(case)
     fallback = _build_local_completed_draft(case)
     source_text = context.get("source_text") or ""
@@ -599,23 +608,23 @@ def _build_local_completed_draft(case: Any) -> str:
 
 二、技術領域
 
-{completion.get("technical_field") or getattr(case, "technical_field", "")}
+{_format_markdown_value(completion.get("technical_field") or getattr(case, "technical_field", ""))}
 
 三、先前技術與現有問題
 
-{completion.get("background_problem") or f"依原始揭露內容整理，現有問題涉及：{source}"}
+{_format_markdown_value(completion.get("background_problem") or f"依原始揭露內容整理，現有問題涉及：{source}")}
 
 四、待解決技術問題
 
-{completion.get("technical_problem") or definition.get("technical_problem", "")}
+{_format_markdown_value(completion.get("technical_problem") or definition.get("technical_problem", ""))}
 
 五、發明目的
 
-{completion.get("invention_objective", "")}
+{_format_markdown_value(completion.get("invention_objective", ""))}
 
 六、核心解決手段
 
-{completion.get("core_solution") or definition.get("original_solution") or source}
+{_format_markdown_value(completion.get("core_solution") or definition.get("original_solution") or source)}
 
 七、必要技術元素組成
 
@@ -623,7 +632,7 @@ def _build_local_completed_draft(case: Any) -> str:
 
 八、系統架構
 
-{completion.get("system_architecture", "")}
+{_format_markdown_value(completion.get("system_architecture", ""))}
 
 九、方法流程
 
@@ -635,7 +644,7 @@ def _build_local_completed_draft(case: Any) -> str:
 
 十一、主要實施例
 
-{embodiment.get("main_embodiment", "")}
+{_format_markdown_value(embodiment.get("main_embodiment", ""))}
 
 十二、替代實施例
 
@@ -657,8 +666,8 @@ def _build_local_completed_draft(case: Any) -> str:
 {_markdown_list(elaboration.get("known_solution_limitations"))}
 - 既有方法不足原因：
 {_markdown_list(elaboration.get("why_existing_methods_are_insufficient"))}
-- 技術改善邏輯：{elaboration.get("technical_improvement_logic", "")}
-- 必要組合理由：{elaboration.get("necessary_combination_reasoning", "")}
+- 技術改善邏輯：{_format_markdown_value(elaboration.get("technical_improvement_logic", ""))}
+- 必要組合理由：{_format_markdown_value(elaboration.get("necessary_combination_reasoning", ""))}
 - 技術效果鏈：
 {_markdown_list(elaboration.get("technical_effect_chain"))}
 - 進步性支撐點：
@@ -691,7 +700,14 @@ def _markdown_list(value: Any) -> str:
     values = _as_list(value)
     if not values:
         return "- 尚待補充。"
-    return "\n".join(f"- {_clean_line(item)}" for item in values if _clean_line(item))
+    lines: List[str] = []
+    for item in values:
+        formatted = _format_markdown_value(item)
+        for line in formatted.splitlines():
+            clean = _clean_line(line)
+            if clean:
+                lines.append(f"- {clean}")
+    return "\n".join(lines) if lines else "- 撠?鋆???"
 
 
 def _as_list(value: Any) -> List[Any]:
@@ -702,11 +718,49 @@ def _as_list(value: Any) -> List[Any]:
     if isinstance(value, tuple):
         return list(value)
     if isinstance(value, dict):
-        return [f"{key}: {item}" for key, item in value.items()]
+        return [value]
     if isinstance(value, str):
         stripped = value.strip()
         return [stripped] if stripped else []
     return [value]
+
+
+def _format_markdown_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        parts = []
+        for key, item in value.items():
+            formatted = _format_markdown_value(item)
+            if formatted:
+                parts.append(f"{_humanize_key(key)}: {formatted}")
+        return "\n".join(parts)
+    if isinstance(value, (list, tuple)):
+        parts = []
+        for item in value:
+            formatted = _format_markdown_value(item)
+            if formatted:
+                parts.append(formatted)
+        return "\n".join(parts)
+    return _clean_line(value)
+
+
+def _humanize_key(key: Any) -> str:
+    text = str(key).strip().strip("'\"")
+    labels = {
+        "title": "標題",
+        "description": "說明",
+        "name": "名稱",
+        "content": "內容",
+        "technical_effect": "技術效果",
+        "condition": "條件",
+        "reason": "理由",
+        "step": "步驟",
+        "module": "模組",
+        "input": "輸入",
+        "output": "輸出",
+    }
+    return labels.get(text, text.replace("_", " "))
 
 
 def _clean_line(value: Any) -> str:
