@@ -1,14 +1,1 @@
-AI_PROVIDER=gemini
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL=openrouter/free
-OPENROUTER_FALLBACK_MODELS=nvidia/nemotron-nano-9b-v2:free,cohere/north-mini-code:free
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_SITE_URL=http://127.0.0.1:8010
-OPENROUTER_APP_NAME=Disclosure Completion AI MVP
-GOOGLE_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-APP_STORAGE_PATH=app/data/cases.json
-APP_DEMO_MODE=true
+python-3.12.8

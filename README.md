@@ -1,360 +1,178 @@
-:root {
-  --bg: #f6f7f9;
-  --panel: #ffffff;
-  --ink: #1b1f23;
-  --muted: #65717b;
-  --line: #d8dee4;
-  --brand: #1f4d5a;
-  --accent: #b4563a;
-  --ok: #26734d;
-  --shadow: 0 10px 26px rgba(24, 36, 44, 0.08);
-}
+# Disclosure Completion AI MVP
 
-* {
-  box-sizing: border-box;
-}
+Patent Engineering Framework Phase 1 MVP。
 
-body {
-  margin: 0;
-  font-family: "Segoe UI", "Noto Sans TC", Arial, sans-serif;
-  color: var(--ink);
-  background: var(--bg);
-}
+本工具不是 Claim Generator，也不是完整專利說明書生成器。目標是將原始專利揭露書、發明人口述逐字稿、技術說明文件或會議記錄，整理補足為一份「可供專利工程師撰寫專利說明書使用的完整揭露書」。
 
-.topbar {
-  min-height: 86px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px 28px;
-  color: #fff;
-  background: var(--brand);
-}
+所有 AI 輸出均為初稿，需由專利工程師確認。
 
-.topbar h1,
-.section-head h2,
-.panel h3 {
-  margin: 0;
-  letter-spacing: 0;
-}
+## 功能
 
-.eyebrow {
-  margin: 0 0 5px;
-  color: inherit;
-  opacity: 0.72;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-}
+- 建立案件與保存狀態
+- 貼上原始揭露內容
+- 上傳 `.txt`、`.md`、`.docx`、可抽取文字的 `.pdf`
+- AI 產生 Engineering Definition
+- AI 產生 Disclosure Completion
+- AI 產生 Progressive Elaboration
+- AI 產生 Embodiment Expansion
+- AI 產生 Completed Disclosure Draft
+- 人工編輯 Engineering Definition 與完整揭露書
+- 保存揭露書版本
+- 匯出 Markdown
+- 匯出 Word docx
+- Responsive Web App / PWA，可由手機瀏覽器開啟同一服務網址
 
-.notice {
-  max-width: 320px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 6px;
-  font-size: 0.92rem;
-  text-align: center;
-}
+## 重要限制
 
-.app-shell {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  min-height: calc(100vh - 86px);
-}
+本 MVP 不做：
 
-.sidebar {
-  padding: 18px 12px;
-  border-right: 1px solid var(--line);
-  background: #edf1f3;
-}
+- Claim 生成
+- 完整專利說明書生成
+- 專利檢索
+- FTO
+- 圖式生成
+- 多 AI Agent 協作
 
-.nav-button,
-button,
-.button-link {
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-}
+## 啟動
 
-.nav-button {
-  width: 100%;
-  margin-bottom: 8px;
-  padding: 9px 10px;
-  text-align: left;
-}
+Windows 使用者可直接執行：
 
-.nav-button.active,
-.primary {
-  border-color: var(--brand);
-  background: var(--brand);
-  color: #fff;
-}
+```bat
+run-windows.bat
+```
 
-.content {
-  min-width: 0;
-  padding: 22px;
-}
+服務網址：
 
-.view {
-  display: none;
-}
+```text
+http://127.0.0.1:8010
+```
 
-.view.active {
-  display: block;
-}
+## API Key 設定
 
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
-}
+正式 AI 推論需要 API Key。Demo 模式不需要 API Key，但只會產生本機 fallback 內容。
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
+### Google Gemini
 
-.panel-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
+```env
+AI_PROVIDER=gemini
+GOOGLE_API_KEY=你的 Gemini API Key
+GEMINI_MODEL=gemini-2.5-flash
+APP_DEMO_MODE=false
+```
 
-.mini-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
+### OpenRouter
 
-button,
-.button-link {
-  padding: 8px 12px;
-  text-decoration: none;
-}
+```env
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=你的 OpenRouter API Key
+OPENROUTER_MODEL=openrouter/free
+APP_DEMO_MODE=false
+```
 
-.button-link.compact {
-  min-height: 30px;
-  padding: 5px 8px;
-  font-size: 0.82rem;
-}
+### OpenAI
 
-.icon-button {
-  width: 40px;
-  padding: 0;
-  font-size: 1.2rem;
-}
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=你的 OpenAI API Key
+OPENAI_MODEL=gpt-4.1-mini
+APP_DEMO_MODE=false
+```
 
-.dashboard-grid,
-.two-column {
-  display: grid;
-  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
-  gap: 16px;
-}
+## 前端操作流程
 
-.workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.9fr) minmax(300px, 1fr) minmax(280px, 1fr);
-  gap: 16px;
-  align-items: start;
-}
+1. Dashboard 建立案件
+2. 在 Case Detail 貼上原始揭露內容或上傳檔案
+3. 進入「可撰寫揭露書生成」
+4. 點選「一鍵補全」或分別執行各 AI 模組
+5. 檢查右側完整揭露書預覽
+6. 進入 Completed Disclosure Draft 人工修改
+7. 儲存揭露書或保存版本
+8. 匯出 Markdown / Word docx
 
-.panel {
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
+## 後端 API
 
-.version-panel {
-  margin-top: 14px;
-  box-shadow: none;
-}
+案件 API：
 
-.form-panel {
-  display: grid;
-  gap: 12px;
-}
+- `POST /cases`
+- `GET /cases`
+- `GET /cases/{case_id}`
+- `PUT /cases/{case_id}`
+- `DELETE /cases/{case_id}`
+- `DELETE /cases`
 
-label {
-  display: grid;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
+上傳：
 
-input,
-textarea,
-select {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 10px;
-  color: var(--ink);
-  background: #fff;
-  font: inherit;
-}
+- `POST /cases/{case_id}/upload`
 
-textarea {
-  resize: vertical;
-}
+Completion AI：
 
-.case-list,
-.doc-list,
-.result-stack {
-  display: grid;
-  gap: 10px;
-}
+- `POST /cases/{case_id}/engineering-definition`
+- `POST /cases/{case_id}/complete-disclosure`
+- `POST /cases/{case_id}/progressive-elaboration-disclosure`
+- `POST /cases/{case_id}/embodiment-expansion`
+- `POST /cases/{case_id}/generate-completed-disclosure-draft`
+- `POST /cases/{case_id}/run-full-completion`
+- `POST /cases/{case_id}/save-draft-version`
+- `POST /cases/{case_id}/clear-completion`
 
-.case-item {
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfd;
-  cursor: pointer;
-}
+匯出：
 
-.case-item.active {
-  border-color: var(--brand);
-  box-shadow: inset 4px 0 0 var(--brand);
-}
+- `GET /cases/{case_id}/export/completed-disclosure/markdown`
+- `GET /cases/{case_id}/export/completed-disclosure/docx`
 
-.case-meta,
-.doc-list {
-  color: var(--muted);
-  font-size: 0.88rem;
-}
+## 狀態
 
-.status-pill {
-  display: inline-flex;
-  width: fit-content;
-  margin-top: 8px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--accent);
-  font-size: 0.78rem;
-}
+- Draft
+- Uploaded
+- Engineering Defined
+- Disclosure Completed
+- Engineer Edited
+- Ready for Specification Drafting
+- Exported
 
-.text-preview,
-.code-editor {
-  width: 100%;
-  max-height: 68vh;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.55;
-}
+## Demo
 
-.text-preview {
-  margin: 0;
-  color: #26323a;
-  font-family: "Consolas", "Noto Sans Mono CJK TC", monospace;
-  font-size: 0.9rem;
-}
+- Demo 原始揭露書：`demo/demo_raw_disclosure.md`
+- Demo Engineering Definition：`demo/demo_engineering_definition.json`
+- Demo Completed Disclosure Draft：`demo/demo_completed_disclosure_draft.md`
 
-.code-editor {
-  min-height: 420px;
-  font-family: "Consolas", "Noto Sans Mono CJK TC", monospace;
-}
+## 手機端使用
 
-.result-card {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  background: #fbfcfd;
-}
+手機與主機在同一 Wi-Fi 時：
 
-.result-card h4 {
-  margin: 0 0 8px;
-}
+1. 主機執行 `run-windows.bat`
+2. 手機或其他主機開啟 `http://主機IP:8010`
+3. 本次已提供連結檔：`outputs/Open-DisclosureCompletionAI-Host.url`
 
-.result-card pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 0.82rem;
-}
+手機與主機不在同一 Wi-Fi 時：
 
-.checkline {
-  display: flex;
-  grid-template-columns: none;
-  align-items: center;
-  gap: 8px;
-}
+- 使用 `outputs/DisclosureCompletionAI-Mobile-Standalone.html`
+- 該單檔會直接由手機瀏覽器呼叫 Google Gemini
+- API Key 會保存在手機瀏覽器本機儲存空間
 
-.checkline input {
-  width: auto;
-}
+若要把主機版分享給外部網路的其他人：
 
-.toast {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  max-width: 360px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  color: #fff;
-  background: var(--ok);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: 160ms ease;
-  pointer-events: none;
-}
+1. 先執行 `run-windows.bat`
+2. 安裝 Cloudflare Tunnel 的 `cloudflared`
+3. 執行 `run-public-tunnel.bat`
+4. 將畫面中產生的 `https://*.trycloudflare.com` 連結分享出去
 
-.toast.show {
-  opacity: 1;
-  transform: translateY(0);
-}
+## 專案結構
 
-@media (max-width: 980px) {
-  .app-shell,
-  .dashboard-grid,
-  .two-column,
-  .workspace-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: flex;
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .nav-button {
-    min-width: 170px;
-    text-align: center;
-  }
-}
-
-@media (max-width: 640px) {
-  .topbar,
-  .section-head {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .content {
-    padding: 14px;
-  }
-
-  .actions {
-    width: 100%;
-  }
-
-  .actions button,
-  .actions .button-link {
-    flex: 1 1 150px;
-  }
-}
+```text
+app/
+  main.py
+  models.py
+  exporters.py
+  services/
+    ai_completion.py
+    ai_gateway.py
+    document_text.py
+    prompts.py
+static/
+  index.html
+  assets/app.js
+  assets/app.css
+demo/
+outputs/
+```

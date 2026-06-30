@@ -1,0 +1,9 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+app/data/cases.json
+outputs/server.log
+work/
+.pytest_cache/
+.DS_Store
