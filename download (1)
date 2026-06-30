@@ -1,0 +1,9 @@
+{
+  "name": "Disclosure Completion AI MVP",
+  "short_name": "Disclosure Completion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#1f4d5a",
+  "icons": []
+}
